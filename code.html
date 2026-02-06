@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memory Match – Levels Edition</title>
+
+<style>
+    select {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* 🌈 Animated Background */
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
+  background-size: 400% 400%;
+  animation: gradientBG 12s ease infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 🧊 Glass UI */
+.glass {
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(14px);
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  text-align: center;
+  width: 90%;
+  max-width: 700px;
+}
+
+h1 {
+  color: white;
+  text-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+#stats {
+  color: white;
+  margin-bottom: 10px;
+}
+
+/* 📊 Progress Bar */
+.progress {
+  width: 100%;
+  background: rgba(255,255,255,0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-bar {
+  height: 12px;
+  width: 0%;
+  background: #4caf50;
+  transition: width 0.4s ease;
+}
+
+/* 🎮 Controls */
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+#controls button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #4caf50;
+  color: white;
+  font-size: 1rem;
+}
+
+/* 🧩 Game Grid */
+#game {
+  display: grid;
+  gap: 10px;
+  justify-content: center;
+}
+
+.card {
+  width: 85px;
+  height: 85px;
+  perspective: 700px;
+}
+
+.inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+}
+
+.inner:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 20px white;
+}
+
+.inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.front, .back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+}
+
+.front {
+  background: #2196f3;
+}
+
+.back {
+  background: white;
+  transform: rotateY(180deg);
+}
+
+/* 🏆 Win Screen */
+#winScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+#winScreen h2 {
+  font-size: 4rem;
+  color: #fff200;
+  text-shadow: 0 0 25px #fff200;
+}
+
+#winScreen button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #4caf50;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="glass">
+  <h1>Memory Match – Levels 🎮</h1>
+
+  <div id="stats">
+    Level: <span id="level">1</span> |
+    Moves: <span id="moves">0</span> |
+    Best Score: <span id="best">∞</span>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div id="controls">
+    <select id="themeSelect" onchange="changeTheme(this.value)">
+  <option value="animals">🐾 Animals</option>
+  <option value="fruits">🍎 Fruits</option>
+  <option value="flowers">🌸 Flowers</option>
+  <option value="food">🍕 Food</option>
+</select>
+
+    <button onclick="startGame()">Restart</button>
+    <button onclick="dailyChallenge()">Daily Challenge 🌟</button>
+  </div>
+
+  <div id="game"></div>
+</div>
+
+<div id="winScreen">
+  <h2>LEVEL COMPLETE 🎉</h2>
+  <button onclick="nextLevel()">Next Level ▶</button>
+</div>
+
+<script>
+    function changeTheme(theme) {
+  currentTheme = theme;
+  startGame();
+}
+
+
+     
+const themes = {
+  animals: ['🐶','🐱','🦊','🐼','🐸','🐵','🐯','🦁','🐨','🐷','🐰','🦄'],
+  fruits: ['🍎','🍌','🍓','🍇','🍉','🍍','🥭','🍑','🍒','🍋','🍐','🥝'],
+  flowers: ['🌸','🌼','🌻','🌹','🌺','🌷','💐','🌿','🍀','🌾','🌱','🪴'],
+  food: ['🍕','🍔','🍟','🌮','🍩','🍪','🍰','🍜','🍣','🥗','🍿','🧁']
+};
+
+let currentTheme = 'animals';
+
+ 
+let level = 1;
+let gridSize = 2;
+let cards = [];
+let first = null;
+let second = null;
+let moves = 0;
+let matched = 0;
+
+const game = document.getElementById('game');
+const winScreen = document.getElementById('winScreen');
+const progressBar = document.getElementById('progressBar');
+const bestScoreEl = document.getElementById('best');
+
+let bestScore = localStorage.getItem('bestScore') || Infinity;
+bestScoreEl.textContent = bestScore === Infinity ? "∞" : bestScore;
+
+function startGame() {
+  game.innerHTML = '';
+  winScreen.style.display = 'none';
+  moves = 0;
+  matched = 0;
+  first = second = null;
+
+  document.getElementById('moves').textContent = 0;
+  document.getElementById('level').textContent = level;
+
+  gridSize = Math.min( level+1, 6);
+  const totalCards = Math.floor((gridSize * gridSize) / 2);
+
+
+    const selectedEmojis = themes[currentTheme].slice(0, totalCards);
+cards = [...selectedEmojis, ...selectedEmojis];
+
+    cards.sort(() => Math.random() - 0.5);
+
+  game.style.gridTemplateColumns = `repeat(${gridSize}, 85px)`;
+
+  cards.forEach(symbol => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const inner = document.createElement('div');
+    inner.className = 'inner';
+    inner.innerHTML = `<div class="front"></div><div class="back">${symbol}</div>`;
+    inner.onclick = () => flip(inner, symbol);
+    card.appendChild(inner);
+    game.appendChild(card);
+  });
+
+  updateProgress();
+}
+
+function flip(el, symbol) {
+  if (el.classList.contains('flipped') || second) return;
+
+  el.classList.add('flipped');
+
+  if (!first) {
+    first = { el, symbol };
+  } else {
+    second = { el, symbol };
+    moves++;
+    document.getElementById('moves').textContent = moves;
+
+    if (first.symbol === second.symbol) {
+      matched += 2;
+      updateProgress();
+      resetTurn();
+
+      if (matched === cards.length) {
+        if (moves < bestScore) {
+          bestScore = moves;
+          localStorage.setItem('bestScore', bestScore);
+          bestScoreEl.textContent = bestScore;
+        }
+        winScreen.style.display = 'flex';
+      }
+    } else {
+      setTimeout(() => {
+        first.el.classList.remove('flipped');
+        second.el.classList.remove('flipped');
+        resetTurn();
+      }, 800);
+    }
+  }
+}
+
+function resetTurn() {
+  first = second = null;
+}
+
+function updateProgress() {
+  const percent = (matched / cards.length) * 100;
+  progressBar.style.width = percent + '%';
+}
+
+function nextLevel() {
+  level++;
+  startGame();
+}
+
+function dailyChallenge() {
+  level = new Date().getDate() % 5 + 1;
+  startGame();
+}
+
+startGame();
+</script>
+
+</body>
+</html>
